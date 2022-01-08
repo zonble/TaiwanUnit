@@ -27,7 +27,7 @@ extension 質量單位 {
         質量單位.grams
     }
 
-    public class var 豪克: 質量單位 {
+    public class var 毫克: 質量單位 {
         質量單位.milligrams
     }
 
