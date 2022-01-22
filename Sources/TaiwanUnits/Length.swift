@@ -55,4 +55,9 @@ extension 長度單位 {
         長度單位.astronomicalUnits
     }
 
+    public class var 鄉民: 長度單位 {
+        UnitLength(
+          symbol: "鄉民",
+          converter: UnitConverterLinear(coefficient: 0.3, constant: 0.0))
+    }
 }
