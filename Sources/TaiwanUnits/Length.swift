@@ -57,7 +57,7 @@ extension 長度單位 {
 
     public class var 鄉民: 長度單位 {
         UnitLength(
-          symbol: UnitLength.centimeters.symbol,
+          symbol: "鄉民",
           converter: UnitConverterLinear(coefficient: 0.3, constant: 0.0))
     }
 }
