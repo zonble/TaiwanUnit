@@ -1,6 +1,7 @@
 # TaiwanUnits
 
 [![CI](https://github.com/zonble/TaiwanUnit/actions/workflows/ci.yml/badge.svg)](https://github.com/zonble/TaiwanUnit/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/zonble/TaiwanUnit/branch/main/graph/badge.svg)](https://codecov.io/gh/zonble/TaiwanUnit)
 
 A Swift Package Manager library that provides Traditional Chinese (繁體中文) aliases and extensions for Foundation's unit measurement classes. TaiwanUnits includes traditional Taiwanese units alongside standard metric and imperial units with Chinese names, making it easy to work with measurements in Taiwan and Chinese-speaking contexts.
 
