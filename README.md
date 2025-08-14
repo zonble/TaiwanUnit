@@ -271,6 +271,20 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 4. Run `swift test` to verify all tests pass
 5. Make your changes and add tests as needed
 
+### Code Coverage Setup (Maintainers)
+
+This project uses [Codecov](https://codecov.io) for code coverage reporting. The CI workflow automatically generates and uploads coverage reports.
+
+**For repository maintainers to enable codecov uploads:**
+
+1. Go to [codecov.io/gh/zonble/TaiwanUnit](https://codecov.io/gh/zonble/TaiwanUnit)
+2. Sign in with GitHub and enable the repository
+3. Copy the upload token from the repository settings
+4. In GitHub repository settings, go to "Secrets and variables" → "Actions"
+5. Add a new repository secret named `CODECOV_TOKEN` with the upload token value
+
+**Note**: Coverage reports are still generated and available as workflow artifacts even without the codecov token configured.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -84,8 +84,28 @@ jobs:
           echo "end_of_record" >> coverage_fallback.lcov
         fi
         
-    - name: Upload coverage to Codecov
+    - name: Check codecov token availability
       if: steps.coverage_gen.outputs.coverage_available == 'true'
+      id: codecov_check
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      run: |
+        if [[ -z "$CODECOV_TOKEN" ]]; then
+          echo "⚠️  CODECOV_TOKEN not found in repository secrets"
+          echo "📋 To enable codecov uploads:"
+          echo "   1. Go to https://codecov.io/gh/zonble/TaiwanUnit"
+          echo "   2. Get your upload token"
+          echo "   3. Add it as CODECOV_TOKEN secret in repository settings"
+          echo "✅ Coverage data is still available in artifacts and comments"
+          echo "token_available=false" >> $GITHUB_OUTPUT
+        else
+          echo "✅ CODECOV_TOKEN found, attempting upload..."
+          echo "token_available=true" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: Upload coverage to Codecov
+      if: steps.coverage_gen.outputs.coverage_available == 'true' && steps.codecov_check.outputs.token_available == 'true'
+      id: codecov_upload
       uses: codecov/codecov-action@v4
       with:
         file: coverage.lcov
@@ -94,6 +114,26 @@ jobs:
         fail_ci_if_error: false
         token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
+      continue-on-error: true
+      
+    - name: Report codecov upload status
+      if: steps.coverage_gen.outputs.coverage_available == 'true'
+      id: codecov_status
+      run: |
+        if [[ "${{ steps.codecov_check.outputs.token_available }}" == "false" ]]; then
+          echo "codecov_uploaded=token_missing" >> $GITHUB_OUTPUT
+          echo "⚠️  Codecov upload skipped - token not configured"
+        elif [[ "${{ steps.codecov_upload.outcome }}" == "success" ]]; then
+          echo "codecov_uploaded=true" >> $GITHUB_OUTPUT
+          echo "✅ Successfully uploaded coverage to codecov"
+        else
+          echo "codecov_uploaded=false" >> $GITHUB_OUTPUT
+          echo "❌ Failed to upload to codecov"
+          echo "📋 Troubleshooting steps:"
+          echo "   1. Verify CODECOV_TOKEN is correct at https://codecov.io/gh/zonble/TaiwanUnit"
+          echo "   2. Check if repository is properly connected to codecov"
+          echo "   3. Ensure branch protection allows codecov uploads"
+        fi
         
     - name: Parse coverage percentage
       id: coverage
@@ -157,6 +197,7 @@ jobs:
           const coverage = '${{ steps.coverage.outputs.coverage }}';
           const commitSha = context.sha;
           const coverageAvailable = '${{ steps.coverage_gen.outputs.coverage_available }}';
+          const codecovUploaded = '${{ steps.codecov_status.outputs.codecov_uploaded }}';
           
           let coverageNote = '';
           if (coverageAvailable === 'true') {
@@ -165,13 +206,24 @@ jobs:
             coverageNote = '⚠️ **Fallback coverage data** (real coverage generation failed)';
           }
           
+          let codecovNote = '';
+          if (codecovUploaded === 'true') {
+            codecovNote = '\n📈 **Codecov**: Successfully uploaded';
+          } else if (codecovUploaded === 'false') {
+            codecovNote = '\n⚠️ **Codecov**: Upload failed (see workflow logs for details)';
+          } else if (codecovUploaded === 'token_missing') {
+            codecovNote = '\n⚠️ **Codecov**: Token not configured (see README for setup)';
+          } else {
+            codecovNote = '\n❓ **Codecov**: Upload not attempted';
+          }
+          
           const comment = `## 📊 Code Coverage Report
           
           **Coverage:** ${coverage}%
           **Commit:** ${commitSha.substring(0, 7)}
           **Build:** ✅ Passed
           
-          ${coverageNote}
+          ${coverageNote}${codecovNote}
           
           📎 [View Coverage Reports Artifact](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
           📈 [View on Codecov](https://codecov.io/gh/${context.repo.owner}/${context.repo.repo})
@@ -194,6 +246,7 @@ jobs:
           const coverage = '${{ steps.coverage.outputs.coverage }}';
           const commitSha = context.sha;
           const coverageAvailable = '${{ steps.coverage_gen.outputs.coverage_available }}';
+          const codecovUploaded = '${{ steps.codecov_status.outputs.codecov_uploaded }}';
           
           let coverageNote = '';
           if (coverageAvailable === 'true') {
@@ -202,13 +255,24 @@ jobs:
             coverageNote = '⚠️ **Fallback coverage data** (real coverage generation failed)';
           }
           
+          let codecovNote = '';
+          if (codecovUploaded === 'true') {
+            codecovNote = '\n📈 **Codecov**: Successfully uploaded';
+          } else if (codecovUploaded === 'false') {
+            codecovNote = '\n⚠️ **Codecov**: Upload failed (see workflow logs for details)';
+          } else if (codecovUploaded === 'token_missing') {
+            codecovNote = '\n⚠️ **Codecov**: Token not configured (see README for setup)';
+          } else {
+            codecovNote = '\n❓ **Codecov**: Upload not attempted';
+          }
+          
           const comment = `## 📊 Code Coverage Report
           
           **Coverage:** ${coverage}%
           **Commit:** ${commitSha.substring(0, 7)}
           **Build:** ✅ Passed
           
-          ${coverageNote}
+          ${coverageNote}${codecovNote}
           
           📎 [View Coverage Reports Artifact](https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
           📈 [View on Codecov](https://codecov.io/gh/${context.repo.owner}/${context.repo.repo})
