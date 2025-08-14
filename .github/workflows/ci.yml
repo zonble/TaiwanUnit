@@ -84,13 +84,12 @@ jobs:
           echo "end_of_record" >> coverage_fallback.lcov
         fi
         
-    - name: Upload coverage to Codecov
+    - name: Check codecov token availability
       if: steps.coverage_gen.outputs.coverage_available == 'true'
-      id: codecov_upload
+      id: codecov_check
       env:
         CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       run: |
-        # Check if codecov token is available
         if [[ -z "$CODECOV_TOKEN" ]]; then
           echo "⚠️  CODECOV_TOKEN not found in repository secrets"
           echo "📋 To enable codecov uploads:"
@@ -98,23 +97,42 @@ jobs:
           echo "   2. Get your upload token"
           echo "   3. Add it as CODECOV_TOKEN secret in repository settings"
           echo "✅ Coverage data is still available in artifacts and comments"
-          echo "codecov_uploaded=false" >> $GITHUB_OUTPUT
-          exit 0
+          echo "token_available=false" >> $GITHUB_OUTPUT
+        else
+          echo "✅ CODECOV_TOKEN found, attempting upload..."
+          echo "token_available=true" >> $GITHUB_OUTPUT
         fi
         
-        # Attempt codecov upload with proper error handling
-        echo "🚀 Uploading coverage to codecov..."
-        if npx codecov -f coverage.lcov -t "$CODECOV_TOKEN" -F swift,unittests -n swift-coverage -v; then
-          echo "✅ Successfully uploaded coverage to codecov"
+    - name: Upload coverage to Codecov
+      if: steps.coverage_gen.outputs.coverage_available == 'true' && steps.codecov_check.outputs.token_available == 'true'
+      id: codecov_upload
+      uses: codecov/codecov-action@v4
+      with:
+        file: coverage.lcov
+        flags: swift,unittests
+        name: swift-coverage
+        fail_ci_if_error: false
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
+      continue-on-error: true
+      
+    - name: Report codecov upload status
+      if: steps.coverage_gen.outputs.coverage_available == 'true'
+      id: codecov_status
+      run: |
+        if [[ "${{ steps.codecov_check.outputs.token_available }}" == "false" ]]; then
+          echo "codecov_uploaded=token_missing" >> $GITHUB_OUTPUT
+          echo "⚠️  Codecov upload skipped - token not configured"
+        elif [[ "${{ steps.codecov_upload.outcome }}" == "success" ]]; then
           echo "codecov_uploaded=true" >> $GITHUB_OUTPUT
+          echo "✅ Successfully uploaded coverage to codecov"
         else
-          echo "❌ Failed to upload to codecov (token may be invalid or network issue)"
+          echo "codecov_uploaded=false" >> $GITHUB_OUTPUT
+          echo "❌ Failed to upload to codecov"
           echo "📋 Troubleshooting steps:"
           echo "   1. Verify CODECOV_TOKEN is correct at https://codecov.io/gh/zonble/TaiwanUnit"
           echo "   2. Check if repository is properly connected to codecov"
           echo "   3. Ensure branch protection allows codecov uploads"
-          echo "✅ Coverage data is still available in artifacts and comments"
-          echo "codecov_uploaded=false" >> $GITHUB_OUTPUT
         fi
         
     - name: Parse coverage percentage
@@ -179,7 +197,7 @@ jobs:
           const coverage = '${{ steps.coverage.outputs.coverage }}';
           const commitSha = context.sha;
           const coverageAvailable = '${{ steps.coverage_gen.outputs.coverage_available }}';
-          const codecovUploaded = '${{ steps.codecov_upload.outputs.codecov_uploaded }}';
+          const codecovUploaded = '${{ steps.codecov_status.outputs.codecov_uploaded }}';
           
           let coverageNote = '';
           if (coverageAvailable === 'true') {
@@ -193,6 +211,8 @@ jobs:
             codecovNote = '\n📈 **Codecov**: Successfully uploaded';
           } else if (codecovUploaded === 'false') {
             codecovNote = '\n⚠️ **Codecov**: Upload failed (see workflow logs for details)';
+          } else if (codecovUploaded === 'token_missing') {
+            codecovNote = '\n⚠️ **Codecov**: Token not configured (see README for setup)';
           } else {
             codecovNote = '\n❓ **Codecov**: Upload not attempted';
           }
@@ -226,7 +246,7 @@ jobs:
           const coverage = '${{ steps.coverage.outputs.coverage }}';
           const commitSha = context.sha;
           const coverageAvailable = '${{ steps.coverage_gen.outputs.coverage_available }}';
-          const codecovUploaded = '${{ steps.codecov_upload.outputs.codecov_uploaded }}';
+          const codecovUploaded = '${{ steps.codecov_status.outputs.codecov_uploaded }}';
           
           let coverageNote = '';
           if (coverageAvailable === 'true') {
@@ -240,6 +260,8 @@ jobs:
             codecovNote = '\n📈 **Codecov**: Successfully uploaded';
           } else if (codecovUploaded === 'false') {
             codecovNote = '\n⚠️ **Codecov**: Upload failed (see workflow logs for details)';
+          } else if (codecovUploaded === 'token_missing') {
+            codecovNote = '\n⚠️ **Codecov**: Token not configured (see README for setup)';
           } else {
             codecovNote = '\n❓ **Codecov**: Upload not attempted';
           }
