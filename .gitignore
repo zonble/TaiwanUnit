@@ -1,9 +1,25 @@
+# macOS
 .DS_Store
-/.build
-/Packages
-/*.xcodeproj
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
 xcuserdata/
 DerivedData/
-.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+*.hmap
+*.ipa
+
+# Code coverage
 *.lcov
 coverage.xml
+
+# Other
+.vscode/
+*.swp
+*.swo
+*~
